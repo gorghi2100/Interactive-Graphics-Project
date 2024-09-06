@@ -20,7 +20,7 @@ const vsSource = `
         vTextureCoord = aTextureCoord;
 
         highp vec3 ambientLight = vec3(0.6, 0.6, 0.6);  // Warmer ambient light
-        highp vec3 directionalLightColor = vec3(0.8, 0.8, 0.8);  // Less intense directional light
+        highp vec3 directionalLightColor = vec3(0.3, 0.3, 0.3);  // Less intense directional light
         highp vec3 directionalVector = normalize(vec3(-0.75, 0.8, -0.75));
 
         highp vec4 transformedNormal = uModelViewMatrix * vec4(aVertexPosition.xyz, 0.0);
@@ -212,6 +212,7 @@ function createSphere(radius, latitudeBands, longitudeBands) {
     const positions = [];
     const indices = [];
     const textureCoords = [];
+    const initialPositions = [];
 
     for (let latNumber = 0; latNumber <= latitudeBands; latNumber++) {
         const theta = latNumber * Math.PI / latitudeBands;
@@ -229,7 +230,9 @@ function createSphere(radius, latitudeBands, longitudeBands) {
             const u = 1 - (longNumber / longitudeBands);
             const v = 1 - (latNumber / latitudeBands);
 
-            positions.push(radius * x, radius * y, radius * z);
+            const vertexPos = [radius * x, radius * y, radius * z];
+            positions.push(...vertexPos);
+            initialPositions.push(...vertexPos);
             textureCoords.push(u, v);
         }
     }
@@ -259,7 +262,9 @@ function createSphere(radius, latitudeBands, longitudeBands) {
         position: positionBuffer,
         textureCoord: textureCoordBuffer,
         indices: indexBuffer,
-        vertexCount: indices.length
+        vertexCount: indices.length,
+        positions,
+        initialPositions
     };
 }
 
@@ -320,7 +325,7 @@ function calculateViewMatrix() {
     const viewMatrix = mat4.create();
 
     // Calculate the camera distance from the center of the scene
-    const cameraDistance = 30.0;  // You can adjust this distance
+    const cameraDistance = 30.0;
 
     // Calculate the camera position using yaw and pitch
     const cameraPosition = [
@@ -335,7 +340,6 @@ function calculateViewMatrix() {
     // The up vector is generally [0, 1, 0] to keep the head up
     const up = [0, 1, 0];
 
-    // Construct the view matrix using lookAt
     mat4.lookAt(viewMatrix, cameraPosition, center, up);
 
     return viewMatrix;
@@ -349,10 +353,10 @@ const wallPositionX = 3.0;
 const wallPositionY = 2.5;
 const wallPositionZ = 0.0;
 let wallBroken = false;
-let wallFragments = [];  // Array to store the wall fragments
+let wallFragments = [];  
 
-const wall = createCube(wallWidth, wallHeight, wallDepth);  // A thin, tall, and deep wall
-const wallTexture = loadTexture(gl, 'wall.png');  // Replace with your texture URL    
+const wall = createCube(wallWidth, wallHeight, wallDepth);  
+const wallTexture = loadTexture(gl, 'wall.png'); 
 
 const floorPositionX = 0;
 const floorPositionY = 0;
@@ -360,21 +364,21 @@ const floorPositionZ = 0;
 const floorWidth = 20;
 const floorDepth = 20;
 
-const floor = createPlane(floorWidth , floorDepth);  // Create a bouncing floor
-const floorTexture = loadTexture(gl, 'floor.png');  // Load the floor texture
+const floor = createPlane(floorWidth , floorDepth);  
+const floorTexture = loadTexture(gl, 'floor.png'); 
 
 const r = 0.5;
 const ballPositionX= -4;
 const ballPositionY = 3;
 const ballPositionZ = 0;
-const velocityX = 0.2;
-const velocityY = 0.05;
+const velocityX = 0.0;
+const velocityY = 0.2;
 const velocityZ = 0;
 
-let sphere = createSphere(r, 30, 30);
+let sphere = createSphere(r, 50, 50);
 const projectionMatrix = initProjectionMatrix(gl);
 
-const texture = loadTexture(gl, 'image.png');  // Replace with your texture URL
+const texture = loadTexture(gl, 'image.png');  
 
 function createBackgroundPlane(width, height) {
     const positions = [
@@ -415,17 +419,16 @@ function createBackgroundPlane(width, height) {
     };
 }
 
-const backgroundPlane = createBackgroundPlane(2, 2);  // Create a background plane that covers the entire view
+const backgroundPlane = createBackgroundPlane(2, 2);  
 
 
-const backgroundTexture = loadTexture(gl, 'background.png'); // Replace with your texture URL
+const backgroundTexture = loadTexture(gl, 'background.png'); 
 
 // Variables for ball physics
 let ballPosition = [ballPositionX, ballPositionY, ballPositionZ];
 let velocity = [velocityX, velocityY, velocityZ];
 const gravity = -0.002;  // Gravity in space units
 const dampingFactor = 0.5;  // Damping factor
-let time = 0.0;  // Variable to track time
 
 // Variables for view control
 let isDragging = false;
@@ -435,7 +438,7 @@ let yaw = 0;  // Rotation around the Y axis (horizontal)
 let pitch = 0.2;  // Rotation around the X axis (vertical)
 
 function createWallFragments(wall) {
-    const fragmentCount = 10;  // Number of fragments
+    const fragmentCount = 10; 
     const fragments = [];
     let remainingHeight = wallHeight;
 
@@ -444,78 +447,70 @@ function createWallFragments(wall) {
         const fragmentHeight = Math.random() * remainingHeight * 0.25;
         remainingHeight -= fragmentHeight;
 
-        const fragment = createCube(wallWidth, fragmentHeight, wallDepth);  // Create the fragment with the calculated height
+        const fragment = createCube(wallWidth, fragmentHeight, wallDepth); 
         fragments.push({
             fragment,
             position: [
-                wallPositionX - Math.random() * 0.5 -0.25,  // Slightly behind the wall
-                (remainingHeight + fragmentHeight / 2),  // Calcola la posizione verticale corretta
-                wallPositionZ + Math.random() * 0.5 - 0.25  // Leggera variazione sull'asse Z
+                wallPositionX - Math.random() * 0.5 -0.25,  
+                (remainingHeight + fragmentHeight / 2), 
+                wallPositionZ + Math.random() * 0.5 - 0.25  
             ],
             velocity: [
-                Math.random() * 0.04 - 0.02,  // Dispersione sull'asse X
-                Math.random() * 0.04 - 0.02,  // Dispersione sull'asse Y
-                Math.random() * 0.04 - 0.02   // Dispersione sull'asse Z
+                Math.random() * 0.04 - 0.02,  
+                Math.random() * 0.04 - 0.02,  
+                Math.random() * 0.04 - 0.02  
             ],
-            fragmentHeight: fragmentHeight  // Memorizza l'altezza del frammento per un utilizzo successivo
+            fragmentHeight: fragmentHeight  
         });
     }
 
-    // Aggiungi l'ultimo frammento con l'altezza rimanente
     const fragment = createCube(wallWidth, remainingHeight, wallDepth);
     fragments.push({
         fragment,
         position: [
-            wallPositionX - Math.random() * 0.5,  // Posiziona leggermente dietro a wallPositionX
-            remainingHeight / 2 - wallHeight / 2,  // Posiziona correttamente l'ultimo frammento
-            wallPositionZ + Math.random() * 0.5 - 0.25  // Leggera variazione sull'asse Z
+            wallPositionX - Math.random() * 0.5, 
+            remainingHeight / 2 - wallHeight / 2, 
+            wallPositionZ + Math.random() * 0.5 - 0.25  
         ],
         velocity: [
-            Math.random() * 0.04 - 0.02,  // Dispersione sull'asse X
-            Math.random() * 0.04 - 0.02,  // Dispersione sull'asse Y
-            Math.random() * 0.04 - 0.02   // Dispersione sull'asse Z
+            Math.random() * 0.04 - 0.02, 
+            Math.random() * 0.04 - 0.02,
+            Math.random() * 0.04 - 0.02 
         ],
-        fragmentHeight: remainingHeight  // Memorizza l'altezza del frammento per un utilizzo successivo
+        fragmentHeight: remainingHeight 
     });
 
     return fragments;
 }
 
+//Create wall fragments when the wall is broken
 function breakWall() {
     wallBroken = true;
-    wallFragments = createWallFragments(wall);  // Crea i frammenti del muro
+    wallFragments = createWallFragments(wall); 
 }
 
 function calculateFloorPosition(ballPosition, viewMatrix, projectionMatrix, r) {
-    // La posizione del pavimento nel mondo è y = 0
-    const floorWorldPosition = [0, 0, ballPosition[2], 1]; // Centro del pavimento in relazione alla posizione Z della pallina
+    const floorWorldPosition = [0, 0, ballPosition[2], 1];
 
-    // Trasforma la posizione del pavimento nel sistema di coordinate della vista
     const floorViewPosition = vec4.create();
     vec4.transformMat4(floorViewPosition, floorWorldPosition, viewMatrix);
 
-    // Trasforma la posizione della vista nello spazio di clip
     const floorClipPosition = vec4.create();
     vec4.transformMat4(floorClipPosition, floorViewPosition, projectionMatrix);
 
-    // Converti in coordinate NDC (Normalized Device Coordinates)
     const ndcPositionY = floorClipPosition[1] / floorClipPosition[3];
 
-    // Considera il raggio della pallina (r) per la posizione del pavimento rispetto alla pallina
-    return ndcPositionY + r;  // Aggiungi il raggio per evitare che la pallina passi sotto il pavimento
+    return ndcPositionY + r;
 }
 
 function drawScene(gl, programInfo, sphere, texture, deltaTime) {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Ottieni la matrice di vista con la nuova funzione
+    // View matrix
     const viewMatrix = calculateViewMatrix();
 
-    // Aggiorna il tempo
-    time += deltaTime;
-
-    // Render del piano di sfondo
+    // Background rendering
     const bgModelViewMatrix = mat4.create();
     mat4.translate(bgModelViewMatrix, bgModelViewMatrix, [0.0, 0.0, -1.0]);
 
@@ -537,59 +532,56 @@ function drawScene(gl, programInfo, sphere, texture, deltaTime) {
 
     gl.drawElements(gl.TRIANGLES, backgroundPlane.vertexCount, gl.UNSIGNED_SHORT, 0);
 
-    // Collisione con il muro
+    const frictionFactor = 0.8;
+
+    // Wall collision
     if (
-        ballPosition[0] + velocity[0] >= wallPositionX - r &&  // Controlla se la pallina raggiunge il muro in X
-        ballPosition[0] + velocity[0] <= wallPositionX - r + wallWidth &&  // Controlla se la pallina non supera il muro
-        ballPosition[1] - r <= wallPositionY + wallHeight &&  // Controlla se la pallina è entro l'altezza del muro
-        ballPosition[1] + r >= 0 &&    // Controlla se la pallina non è sotto il muro
-        ballPosition[2] + r >= wallPositionZ - wallDepth && // Controlla se la pallina è entro la profondità del muro
-        ballPosition[2] - r <= wallPositionZ + wallDepth && // Controlla se la pallina non è oltre il muro in profondità
-        !wallBroken                    // Verifica che il muro non sia già rotto
+        ballPosition[0] + velocity[0] >= wallPositionX - r &&
+        ballPosition[0] + velocity[0] <= wallPositionX - r + wallWidth &&
+        ballPosition[1] - r <= wallPositionY + wallHeight &&
+        ballPosition[1] + r >= 0 &&
+        ballPosition[2] + r >= wallPositionZ - wallDepth &&
+        ballPosition[2] - r <= wallPositionZ + wallDepth &&
+        !wallBroken
     ) {
-        velocity[0] = -velocity[0] * dampingFactor; // Inverti e smorza la velocità
-        time = 0;  // Resetta il tempo per la deformazione
-        breakWall();  // Rompi il muro
+        velocity[0] = -velocity[0] * dampingFactor;
+        breakWall();
     }
 
     let floorPos = calculateFloorPosition(ballPosition, viewMatrix, projectionMatrix, r);
 
-    const frictionFactor = 0.8;  // Fattore di attrito, vicino a 1 per attrito basso, vicino a 0 per attrito alto
-
- // Rimbalzo dal pavimento o caduta se fuori dal floor
 if (ballPosition[1] + velocity[1] <= floorPos) {
-    // Verifica se la pallina è ancora sopra il pavimento
+    // Verify if the ball is within the floor boundaries
     if (ballPosition[0] >= floorPositionX - floorWidth/2 && ballPosition[0] <= floorPositionX + floorWidth/2 &&
         ballPosition[2] >= floorPositionZ - floorDepth/2 && ballPosition[2] <= floorPositionZ + floorDepth/2) {
-        // Se è sopra il pavimento, rimbalza
+        // Ball bounces on the floor
         velocity[1] = -velocity[1] * dampingFactor;
-        velocity[0] *= frictionFactor;  // Applica attrito alla velocità lungo l'asse X
-        velocity[2] *= frictionFactor;  // Applica attrito alla velocità lungo l'asse Z
-        time = 0;
-        ballPosition[1] = floorPos;  // Imposta la pallina sopra il pavimento calcolato
-        // Se è fuori dal pavimento, continua a cadere sotto l'effetto della gravità
+        velocity[0] *= frictionFactor;  
+        velocity[2] *= frictionFactor; 
+        ballPosition[1] = floorPos;  
+    } else {
+        // Ball falls if it's outside the floor
         ballPosition[1] += velocity[1];
         velocity[1] += gravity;
     }
 }
 
-    // Aggiorna la posizione della pallina
+    // Update the ball position
     velocity[1] += gravity;
     ballPosition[0] += velocity[0];
     ballPosition[1] += velocity[1];
     ballPosition[2] += velocity[2];
 
-    // Fermo la palla se la velocità sull'asse X è molto piccola
     if (Math.abs(velocity[0]) < 0.001) {
         velocity[0] = 0;
     }
 
-    // Matrice di modellazione della palla
+    // Model matrix for the sphere
     const modelViewMatrix = mat4.clone(viewMatrix);
     mat4.translate(modelViewMatrix, modelViewMatrix, ballPosition);
 
     if(pitch > floorPositionY) {
-    // Render del piano di rimbalzo
+    // Floor rendering
     const floorModelViewMatrix = mat4.clone(viewMatrix);
     mat4.translate(floorModelViewMatrix, floorModelViewMatrix, [floorPositionX, floorPositionY, floorPositionZ]);
 
@@ -611,30 +603,26 @@ if (ballPosition[1] + velocity[1] <= floorPos) {
 
     gl.drawElements(gl.TRIANGLES, floor.vertexCount, gl.UNSIGNED_SHORT, 0);
 
-// Render del muro o dei frammenti
 if (wallBroken) {
     for (let i = 0; i < wallFragments.length; i++) {
         const fragment = wallFragments[i];
 
-        // Aggiorna la posizione del frammento
+        // Update the fragment position
         fragment.velocity[1] += 9.81 * gravity * deltaTime;
         fragment.position[0] += fragment.velocity[0];
         fragment.position[1] += fragment.velocity[1];
         fragment.position[2] += fragment.velocity[2];
 
-        // Calcola la metà dell'altezza del frammento
-        const fragmentHeight = fragment.fragmentHeight; // Usa l'altezza reale del frammento
+        const fragmentHeight = fragment.fragmentHeight;
 
-        // Impedisci ai frammenti di scendere sotto il floor
+        // Block fragments from falling through the floor
         if (fragment.position[1] - fragmentHeight < floorPositionY) {
             fragment.position[1] = floorPositionY + fragmentHeight;
-            fragment.velocity[1] = 0;  // Ferma il movimento verticale
+            fragment.velocity[1] = 0; 
 
-            // Applica attrito alle velocità orizzontali quando il frammento tocca il suolo
             fragment.velocity[0] *= frictionFactor;
             fragment.velocity[2] *= frictionFactor;
 
-            // Fermo il frammento se la velocità è molto piccola
             if (Math.abs(fragment.velocity[0]) < 0.01) {
                 fragment.velocity[0] = 0;
             }
@@ -646,7 +634,7 @@ if (wallBroken) {
         const fragmentModelViewMatrix = mat4.clone(viewMatrix);
         mat4.translate(fragmentModelViewMatrix, fragmentModelViewMatrix, fragment.position);
 
-        // Rendering del frammento
+        // Fragments rendering 
         gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, fragmentModelViewMatrix);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, fragment.fragment.position);
@@ -667,6 +655,7 @@ if (wallBroken) {
     }
 }
  else {
+        //Wall rendering
         const wallModelViewMatrix = mat4.clone(viewMatrix);
         mat4.translate(wallModelViewMatrix, wallModelViewMatrix, [wallPositionX, wallPositionY, wallPositionZ]);
 
@@ -689,7 +678,7 @@ if (wallBroken) {
         gl.drawElements(gl.TRIANGLES, wall.vertexCount, gl.UNSIGNED_SHORT, 0);
     }
 
-    // Render della sfera
+    // Sphere rendering
     gl.bindBuffer(gl.ARRAY_BUFFER, sphere.position);
     gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
@@ -711,30 +700,24 @@ if (wallBroken) {
 
     gl.drawElements(gl.TRIANGLES, sphere.vertexCount, gl.UNSIGNED_SHORT, 0);
 } else {
-    // Render del muro o dei frammenti
     if (wallBroken) {
         for (let i = 0; i < wallFragments.length; i++) {
             const fragment = wallFragments[i];
 
-            // Aggiorna la posizione del frammento
             fragment.velocity[1] += 9.81 * gravity * deltaTime;
             fragment.position[0] += fragment.velocity[0];
             fragment.position[1] += fragment.velocity[1];
             fragment.position[2] += fragment.velocity[2];
 
-            // Calcola la metà dell'altezza del frammento
-            const fragmentHeight = fragment.fragmentHeight; // Usa l'altezza reale del frammento
+            const fragmentHeight = fragment.fragmentHeight;
 
-            // Impedisci ai frammenti di scendere sotto il floor
             if (fragment.position[1] - fragmentHeight < floorPositionY) {
                 fragment.position[1] = floorPositionY + fragmentHeight;
-                fragment.velocity[1] = 0;  // Ferma il movimento verticale
+                fragment.velocity[1] = 0;
 
-                // Applica attrito alle velocità orizzontali quando il frammento tocca il suolo
                 fragment.velocity[0] *= frictionFactor;
                 fragment.velocity[2] *= frictionFactor;
 
-                // Fermo il frammento se la velocità è molto piccola
                 if (Math.abs(fragment.velocity[0]) < 0.01) {
                     fragment.velocity[0] = 0;
                 }
@@ -746,7 +729,7 @@ if (wallBroken) {
             const fragmentModelViewMatrix = mat4.clone(viewMatrix);
             mat4.translate(fragmentModelViewMatrix, fragmentModelViewMatrix, fragment.position);
 
-            // Rendering del frammento
+            // Fragments rendering
             gl.uniformMatrix4fv(programInfo.uniformLocations.modelViewMatrix, false, fragmentModelViewMatrix);
 
             gl.bindBuffer(gl.ARRAY_BUFFER, fragment.fragment.position);
@@ -767,6 +750,7 @@ if (wallBroken) {
         }
     }
     else {
+            // Wall rendering
             const wallModelViewMatrix = mat4.clone(viewMatrix);
             mat4.translate(wallModelViewMatrix, wallModelViewMatrix, [wallPositionX, wallPositionY, wallPositionZ]);
 
@@ -789,7 +773,7 @@ if (wallBroken) {
             gl.drawElements(gl.TRIANGLES, wall.vertexCount, gl.UNSIGNED_SHORT, 0);
         }
 
-    // Render della sfera
+    //Ball rendering
     gl.bindBuffer(gl.ARRAY_BUFFER, sphere.position);
     gl.vertexAttribPointer(programInfo.attribLocations.vertexPosition, 3, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
@@ -811,7 +795,7 @@ if (wallBroken) {
 
     gl.drawElements(gl.TRIANGLES, sphere.vertexCount, gl.UNSIGNED_SHORT, 0);
 
-    // Render del piano di rimbalzo
+    //Floor rendering
     const floorModelViewMatrix = mat4.clone(viewMatrix);
     mat4.translate(floorModelViewMatrix, floorModelViewMatrix, [floorPositionX, floorPositionY, floorPositionZ]);
 
@@ -835,9 +819,10 @@ if (wallBroken) {
     }
 }
 
+// Animation loop
 function render(now) {
     if (animationRunning) {
-        now *= 0.001;  // Convert time to seconds
+        now *= 0.001; 
         const deltaTime = now - then;
         then = now;
 
@@ -853,6 +838,7 @@ requestAnimationFrame(render);
 let animationRunning = false;
 let requestId;
 
+//Start button logic
 function startAnimation() {
     if (!animationRunning) {
         animationRunning = true;
@@ -861,6 +847,7 @@ function startAnimation() {
     }
 }
 
+//Stop button logic
 function stopAnimation() {
     if (animationRunning) {
         animationRunning = false;
@@ -868,7 +855,14 @@ function stopAnimation() {
     }
 }
 
-// Event listener per i bottoni
+//Reset button logic
+function resetAnimation() {
+    ballPosition = [ballPositionX, ballPositionY, ballPositionZ];
+    velocity = [velocityX, velocityY, velocityZ];
+    wallBroken = false;
+    wallFragments = [];
+}
+
 document.getElementById("start-button").addEventListener("click", startAnimation);
 document.getElementById("stop-button").addEventListener("click", stopAnimation);
 document.getElementById("reset-button").addEventListener("click", () => {
@@ -878,18 +872,10 @@ document.getElementById("reset-button").addEventListener("click", () => {
     }
 });
 
-// Funzione per riavviare l'animazione
-function resetAnimation() {
-    ballPosition = [ballPositionX, ballPositionY, ballPositionZ];
-    velocity = [velocityX, velocityY, velocityZ];
-    wallBroken = false; // Ripristina lo stato del muro
-    wallFragments = []; // Svuota i frammenti del muro
-    time = 0.0; // Reset tempo
-}
-
+//The animation starts automatically
 startAnimation();
 
-// Eventi del mouse per ruotare la scena
+// Mouse event handling
 canvas.addEventListener('mousedown', (event) => {
     isDragging = true;
     lastMouseX = event.clientX;
@@ -901,7 +887,6 @@ canvas.addEventListener('mousemove', (event) => {
         const deltaX = event.clientX - lastMouseX;
         const deltaY = event.clientY - lastMouseY;
 
-        // Aggiorna gli angoli di rotazione
         yaw += deltaX * 0.01;
         pitch += deltaY * 0.01;
 
