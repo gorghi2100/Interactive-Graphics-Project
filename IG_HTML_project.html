@@ -19,8 +19,8 @@
             top: 20px;
             left: 20px;
         }
-        button {
-            padding: 10px 20px;
+        button, div {
+            padding: 10px;
             background-color: #007bff;
             color: white;
             border: none;
@@ -37,11 +37,29 @@
 <body>
     <canvas id="webgl-canvas"></canvas>
     <div id="controls">
-        <button id="start-button">Start Animation</button>
-        <button id="stop-button">Stop Animation</button>
         <button id="reset-button">Restart Animation</button>
+
+        <!-- Velocity Display -->
+        <div>
+            <label>Velocity X: <span id="velocityX">0.00</span></label>
+        </div>
+        <div>
+            <label>Velocity Y: <span id="velocityY">0.00</span></label>
+        </div>
+        <div>
+            <label>Velocity Z: <span id="velocityZ">0.00</span></label>
+        </div>
     </div>
+
     <script src="gl-matrix.js"></script>
     <script src="IG_project.js"></script>
+    <script>
+        function updateVelocityDisplay() {
+            document.getElementById('velocityX').textContent = velocity[0].toFixed(2);
+            document.getElementById('velocityY').textContent = velocity[1].toFixed(2);
+            document.getElementById('velocityZ').textContent = velocity[2].toFixed(2);
+        }
+        updateVelocityDisplay();
+    </script>
 </body>
 </html>

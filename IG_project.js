@@ -142,11 +142,11 @@ function createCube(width, height, depth) {
         1.0, 0.0,
         1.0, 1.0,
         0.0, 1.0,
-        // Back face 
-        0.0, 0.0,
+        // Back face
         1.0, 0.0,
         1.0, 1.0,
         0.0, 1.0,
+        0.0, 0.0,
         // Top face
         0.0, 0.0,
         1.0, 0.0,
@@ -745,6 +745,7 @@ function handleBallBounceOnFloor() {
             
             if(Math.abs(velocity[1] < 0.01)){
                 ballPosition[1] = floorPositionY + r;
+                velocity[1] = 0;
                 ballRotationX += velocity[2] / r; 
                 ballRotationZ += -velocity[0] / r;
                 }
@@ -755,7 +756,7 @@ function handleBallBounceOnFloor() {
 
 function updateBallPosition() {
     // Ball physics
-    if (velocity[1] !== 0 || ballPosition[1] != floorPositionY + r) {
+    if (ballPosition[1] != floorPositionY + r) {
         velocity[1] += gravity;
     }
     // Ball translation
@@ -1006,8 +1007,6 @@ function render() {
     }
 }
 
-requestAnimationFrame(render);
-
 function drawScene(gl, programInfo) {
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
@@ -1032,38 +1031,23 @@ function drawScene(gl, programInfo) {
     }
 }
 
+requestAnimationFrame(render);
+
 let animationRunning = false;
 let requestId;
 
-// Start button logic
+// Start logic
 function startAnimation() {
     if (!animationRunning) {
         animationRunning = true;
         requestId = requestAnimationFrame(render);
     }
 }
-// Stop button logic
-function stopAnimation() {
-    if (animationRunning) {
-        animationRunning = false;
-        cancelAnimationFrame(requestId);
-    }
-}
 // Reset button logic
 function resetAnimation() {
-    ballPosition = [ballPositionX, ballPositionY, ballPositionZ];
-    velocity = [velocityX, velocityY, velocityZ];
-    wallBroken = false;
-    wallFragments = [];
-    
-    // Se l'animazione è in esecuzione, mantienila in esecuzione, altrimenti fermala
-    if (!animationRunning) {
-        cancelAnimationFrame(requestId);  // Assicurati di cancellare il frame corrente se l'animazione era in esecuzione
-    }
+    location.reload();
 }
 
-document.getElementById("start-button").addEventListener("click", startAnimation);
-document.getElementById("stop-button").addEventListener("click", stopAnimation);
 document.getElementById("reset-button").addEventListener("click", () => {
     resetAnimation();  
 });
