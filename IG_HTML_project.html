@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebGL 3D Scene</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+        }
+        canvas {
+            display: block;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="webgl-canvas"></canvas>
+    <div id="controls">
+        <button id="start-button">Start Animation</button>
+        <button id="stop-button">Stop Animation</button>
+        <button id="reset-button">Restart Animation</button>
+    </div>
+    <script src="gl-matrix.js"></script>
+    <script src="IG_project.js"></script>
+</body>
+</html>
