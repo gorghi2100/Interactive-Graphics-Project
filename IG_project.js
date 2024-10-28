@@ -171,7 +171,7 @@ function createCube(width, height, depth) {
 
     let indices;
 
-    if(Math.abs(velocity[0]) < vBounce)
+    if(Math.abs(velocity[0]) < vBounce && Math.abs(velocity[2]) < vBounce)
         indices = [
         0,  1,  2,  0,  2,  3,   // front
         4,  5,  6,  4,  6,  7,   // back
@@ -557,6 +557,51 @@ function calculateViewMatrix() {
     return viewMatrix;
 }
 
+// Scene update functions
+function updateBallPosition() {
+    // Ball physics
+    if (ballPosition[1] != floorPositionY + r) {
+        velocity[1] += gravity;
+    }
+    // Ball translation
+    ballPosition[0] += velocity[0];
+    ballPosition[1] += velocity[1];
+    ballPosition[2] += velocity[2];
+    // Ball rotation 
+    ballRotationX += velocity[2] / r;
+    ballRotationZ += -velocity[0] / r;
+
+    if (Math.abs(velocity[0]) < 0.001) {
+        velocity[0] = 0;
+    }
+    if (Math.abs(velocity[2]) < 0.001) {
+        velocity[2] = 0;
+    }
+    if (ballPosition[1] + velocity[1] <= floorPositionY + r) {
+        handleBallBounceOnFloor(floorPositionY); 
+    }
+}
+
+function handleBallBounceOnFloor() {
+    if (ballPosition[0] >= floorPositionX - floorWidth / 2 &&
+        ballPosition[0] <= floorPositionX + floorWidth / 2 &&
+        ballPosition[2] >= floorPositionZ - floorDepth / 2 &&
+        ballPosition[2] <= floorPositionZ + floorDepth / 2) {
+            
+            velocity[0] *= frictionFactor;
+            velocity[1] = -velocity[1] * dampingFactor;
+            velocity[2] *= frictionFactor;
+            
+            if(Math.abs(velocity[1] < 0.01)){
+                ballPosition[1] = floorPositionY + r;
+                ballRotationX += velocity[2] / r; 
+                ballRotationZ += -velocity[0] / r;
+                }
+    } else {
+            ballPosition[1] += velocity[1] * gravity;
+    }
+}
+
 function calculateImpactPoint(ballPosition, velocity, wallPositionX) {
     const [x0, y0, z0] = ballPosition; 
     const [vx, vy, vz] = velocity;    
@@ -591,21 +636,64 @@ function calculateImpactPoint(ballPosition, velocity, wallPositionX) {
     return { x: xImpact, y: yImpact, z: zImpact};
 }
 
+function handleWallCollision() {
+    if (impactPoint && 
+        ballPosition[0] >= wallPositionX - wallWidth - r &&
+        ballPosition[0] <= wallPositionX + wallWidth + r &&
+        impactPoint.y < wallPositionY + wallHeight + r &&
+        ballPosition[1] >= wallHeight - wallPositionY + r &&
+        ballPosition[2] + r >= wallPositionZ - wallDepth &&
+        ballPosition[2] - r <= wallPositionZ + wallDepth &&
+        !wallBroken
+    ) {
+        if(Math.abs(velocity[0]) <= vBounce)
+            velocity[0] = -velocity[0] * dampingFactor;
+        if(Math.abs(velocity[2]) <= vBounce)
+            velocity[2] = -velocity[2] * dampingFactor;
+        if(Math.abs(velocity[0]) >= vBreak){
+            console.log("Collision detected! Breaking wall...");
+            breakWall();
+        }
+        if(Math.abs(velocity[2]) >= vBreak){
+            console.log("Collision detected! Breaking wall...");
+            breakWall();
+        }
+        if(Math.abs(velocity[0]) > vBounce && Math.abs(velocity[0]) < vBreak){
+            console.log("Collision detected! Breaking wall...");
+            breakWall();
+            velocity[0] = -velocity[0] * dampingFactor/2;
+        }
+        if(Math.abs(velocity[2]) > vBounce && Math.abs(velocity[2]) < vBreak){
+            console.log("Collision detected! Breaking wall...");
+            breakWall();
+            velocity[2] = -velocity[2] * dampingFactor/2;
+        }
+    }
+}
+
+function breakWall() {
+    wallBroken = true; 
+    if (impactPoint) {
+        wallFragments = createWallFragments(impactPoint, velocity); 
+        console.log("Wall fragments created:", wallFragments);
+    }
+}
+
 function createWallFragments(impactPoint, velocity) {
     console.log("Creating fragments at impact point:", impactPoint);
     const fragmentCount = 30;
     const fragments = [];
     const minHeight = 0.01;
-    const maxHeight = 0.05;
-    let remainingHeight = wallHeight;
+    const maxHeight = 0.15;
+    let remainingHeight = wallHeight + wallPositionY;
 
     let currentY = impactPoint.y;
 
     for (let i = 0; i < fragmentCount; i++) {
-        const fragmentHeight = Math.max(minHeight, maxHeight);
+        const fragmentHeight = Math.max(minHeight, maxHeight * Math.random());
         remainingHeight -= fragmentHeight;
 
-        if (currentY + fragmentHeight >= wallPositionY + wallHeight + r) {
+        if (currentY > wallPositionY + wallHeight + r) {
             break;
         }
 
@@ -613,13 +701,13 @@ function createWallFragments(impactPoint, velocity) {
         const fragmentType = Math.random();
 
         if (fragmentType < 0.33) {
-            fragment = createCube(wallWidth, fragmentHeight, wallDepth /4 * Math.random()); // Cubetto
+            fragment = createCube(wallWidth, fragmentHeight, wallDepth /4 * Math.random()); 
         }
         else if (fragmentType < 0.66) {
             fragment = createIrregularPolygon3D();
         }
         else {
-            fragment = createCube(wallWidth, fragmentHeight, wallDepth/4); // Frammento già esistente
+            fragment = createCube(wallWidth, fragmentHeight, wallDepth/4); 
         }
 
         console.log("Created fragment", i, fragment);
@@ -630,7 +718,7 @@ function createWallFragments(impactPoint, velocity) {
         const initialVelocityY = velocity[1] * speedFactor + (Math.random() - 0.5) * 0.2;
         const initialVelocityZ = velocity[2] * speedFactor + (Math.random() - 0.5) * 0.2;
         
-        if (Math.abs(velocity[0] < vBreak && Math.abs(velocity[0]) >= vBounce)) {  // Caso in cui la velocità lungo X è negativa
+        if (Math.abs(velocity[0] < vBreak && Math.abs(velocity[0]) >= vBounce)) { 
             if (velocity[0] < 0) {
                 initialVelocityX = velocity[0] * speedFactor + (Math.random() - 0.5) * 0.2;
             } else {
@@ -686,96 +774,6 @@ function updateFragmentMovement(fragments) {
                 fragmentData.position[1] = floorPositionY + fragmentData.fragmentHeight + 0.01;
         }
     });
-}
-
-function breakWall() {
-    wallBroken = true; 
-    if (impactPoint) {
-        wallFragments = createWallFragments(impactPoint, velocity); 
-        console.log("Wall fragments created:", wallFragments);
-    } else {
-        console.warn("No impact point calculated; wall fragments not created.");
-    }
-}
-
-function handleWallCollision() {
-    if (impactPoint && 
-        ballPosition[0] >= wallPositionX - wallWidth - r &&
-        ballPosition[0] <= wallPositionX + wallWidth + r &&
-        impactPoint.y < wallPositionY + wallHeight + r &&
-        ballPosition[1] >= wallHeight - wallPositionY + r &&
-        ballPosition[2] + r >= wallPositionZ - wallDepth &&
-        ballPosition[2] - r <= wallPositionZ + wallDepth &&
-        !wallBroken
-    ) {
-        if(Math.abs(velocity[0]) <= vBounce)
-            velocity[0] = -velocity[0] * dampingFactor;
-        if(Math.abs(velocity[2]) <= vBounce)
-            velocity[2] = -velocity[2] * dampingFactor;
-        if(Math.abs(velocity[0]) >= vBreak){
-            console.log("Collision detected! Breaking wall...");
-            breakWall();
-        }
-        if(Math.abs(velocity[2]) >= vBreak){
-            console.log("Collision detected! Breaking wall...");
-            breakWall();
-        }
-        if(Math.abs(velocity[0]) > vBounce && Math.abs(velocity[0]) < vBreak){
-            console.log("Collision detected! Breaking wall...");
-            breakWall();
-            velocity[0] = -velocity[0] * dampingFactor;
-        }
-        if(Math.abs(velocity[2]) > vBounce && Math.abs(velocity[2]) < vBreak){
-            console.log("Collision detected! Breaking wall...");
-            breakWall();
-            velocity[2] = -velocity[2] * dampingFactor;
-        }
-    }
-}
-
-function handleBallBounceOnFloor() {
-    if (ballPosition[0] >= floorPositionX - floorWidth / 2 &&
-        ballPosition[0] <= floorPositionX + floorWidth / 2 &&
-        ballPosition[2] >= floorPositionZ - floorDepth / 2 &&
-        ballPosition[2] <= floorPositionZ + floorDepth / 2) {
-            
-            velocity[0] *= frictionFactor;
-            velocity[1] = -velocity[1] * dampingFactor;
-            velocity[2] *= frictionFactor;
-            
-            if(Math.abs(velocity[1] < 0.01)){
-                ballPosition[1] = floorPositionY + r;
-                velocity[1] = 0;
-                ballRotationX += velocity[2] / r; 
-                ballRotationZ += -velocity[0] / r;
-                }
-    } else {
-            ballPosition[1] += velocity[1]*gravity;
-    }
-}
-
-function updateBallPosition() {
-    // Ball physics
-    if (ballPosition[1] != floorPositionY + r) {
-        velocity[1] += gravity;
-    }
-    // Ball translation
-    ballPosition[0] += velocity[0];
-    ballPosition[1] += velocity[1];
-    ballPosition[2] += velocity[2];
-    // Ball rotation 
-    ballRotationX += velocity[2] / r;
-    ballRotationZ += -velocity[0] / r;
-
-    if (Math.abs(velocity[0]) < 0.001) {
-        velocity[0] = 0;
-    }
-    if (Math.abs(velocity[2]) < 0.001) {
-        velocity[2] = 0;
-    }
-    if (ballPosition[1] + velocity[1] <= floorPositionY + r) {
-        handleBallBounceOnFloor(floorPositionY); 
-    }
 }
 
 // Rendering functions
@@ -885,7 +883,7 @@ function renderWall(gl, wall, viewMatrix) {
         gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
 
         gl.drawElements(gl.TRIANGLES, wall.vertexCount, gl.UNSIGNED_SHORT, 0);
-    } else if (impactPoint.y >= r) {
+    } else {
         const wallBrokenModelViewMatrix = mat4.clone(viewMatrix); 
         mat4.translate(wallBrokenModelViewMatrix, wallBrokenModelViewMatrix, [wallPositionX, Math.abs((impactPoint.y - r) / 2) + 0.01, wallPositionZ]);
 
@@ -1044,12 +1042,22 @@ function startAnimation() {
     }
 }
 // Reset button logic
-function resetAnimation() {
+function reloadAnimation() {
     location.reload();
 }
 
-document.getElementById("reset-button").addEventListener("click", () => {
-    resetAnimation();  
+function restartAnimation(){
+        ballPosition = [ballPositionX, ballPositionY, ballPositionZ];
+        velocity = [velocityX, velocityY, velocityZ];
+        wallBroken = false;
+        wallFragments = [];
+}
+
+document.getElementById("reload-button").addEventListener("click", () => {
+    reloadAnimation();  
+});
+document.getElementById("restart-button").addEventListener("click", () => {
+    restartAnimation();  
 });
 
 startAnimation();
