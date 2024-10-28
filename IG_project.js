@@ -528,7 +528,7 @@ function getRandomInRange(min, max) {
 function initProjectionMatrix(gl) {
     const fieldOfView = 45;
     const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-    const zNear = 0.1;
+    const zNear = 0.01;
     const zFar = 100.0;
     const projectionMatrix = mat4.create();
 
@@ -592,7 +592,7 @@ function handleBallBounceOnFloor() {
             velocity[1] = -velocity[1] * dampingFactor;
             velocity[2] *= frictionFactor;
             
-            if(Math.abs(velocity[1] < 0.01)){
+            if(Math.abs(velocity[1] < 0.001)){
                 ballPosition[1] = floorPositionY + r;
                 ballRotationX += velocity[2] / r; 
                 ballRotationZ += -velocity[0] / r;
@@ -613,20 +613,24 @@ function calculateImpactPoint(ballPosition, velocity, wallPositionX) {
     }
 
     const tImpactX = ((wallPositionX - wallWidth) - x0) / vx;
+    const tImpactZ = ((wallPositionZ - wallDepth) - x0) / vz;
 
     const discriminant = vy * vy + 2 * gravity * y0;
     if (discriminant < 0) {
         console.warn("No valid impact due to negative discriminant.");
         return null;
     }
-    const yImpact = y0 + vy * tImpactX - 0.5 * gravity * tImpactX * tImpactX;
+
+    let yImpact;
+
+    if(wallDepth >= wallWidth)
+        yImpact = y0 + vy * tImpactX - 0.5 * gravity * tImpactX * tImpactX;
+    else
+        yImpact = y0 + vy * tImpactZ - 0.5 * gravity * tImpactZ * tImpactZ;
 
     let xImpact, zImpact;
 
-    if(x0 < wallPositionX - wallWidth)
-        xImpact = wallPositionX - wallWidth;
-    else    
-        xImpact = wallPositionX + wallWidth;
+    xImpact = wallPositionX;
 
     if(z0 < wallPositionZ - wallDepth)
         zImpact = wallPositionZ - wallDepth;
@@ -641,7 +645,7 @@ function handleWallCollision() {
         ballPosition[0] >= wallPositionX - wallWidth - r &&
         ballPosition[0] <= wallPositionX + wallWidth + r &&
         impactPoint.y < wallPositionY + wallHeight + r &&
-        ballPosition[1] >= wallHeight - wallPositionY + r &&
+        ballPosition[1] >= wallHeight - wallPositionY &&
         ballPosition[2] + r >= wallPositionZ - wallDepth &&
         ballPosition[2] - r <= wallPositionZ + wallDepth &&
         !wallBroken
@@ -669,6 +673,14 @@ function handleWallCollision() {
             velocity[2] = -velocity[2] * dampingFactor/2;
         }
     }
+    if(ballPosition[1] <= wallPositionY + wallHeight + r && 
+        ballPosition[0] > wallPositionX - wallWidth/2 - r &&
+        ballPosition[0] < wallPositionX + wallWidth/2 + r && 
+        !wallBroken &&
+        velocity[0] < vUp){
+        velocity[1] = -velocity[1] * dampingFactor;
+        ballPosition[1] = wallPositionY + wallHeight + r;
+    }      
 }
 
 function breakWall() {
@@ -719,13 +731,13 @@ function createWallFragments(impactPoint, velocity) {
         const initialVelocityZ = velocity[2] * speedFactor + (Math.random() - 0.5) * 0.2;
         
         if (Math.abs(velocity[0] < vBreak && Math.abs(velocity[0]) >= vBounce)) { 
-            if (velocity[0] < 0) {
+            if (velocity[0] < 0 || velocity [2] < 0) {
                 initialVelocityX = velocity[0] * speedFactor + (Math.random() - 0.5) * 0.2;
             } else {
                 initialVelocityX = velocity[0] * speedFactor + (Math.random() - 0.5) * 0.2;
             }
         } else {  
-            if (velocity[0] < 0) {
+            if (velocity[0] < 0 || velocity [2] < 0) {
                 initialVelocityX = -velocity[0] * speedFactor + (Math.random() - 0.5) * 0.2;
             } else {
                 initialVelocityX = velocity[0] * speedFactor + (Math.random() - 0.5) * 0.2;
@@ -735,7 +747,7 @@ function createWallFragments(impactPoint, velocity) {
         fragments.push({
             fragment,
             position: [
-                impactPoint.x,
+                impactPoint.x + wallWidth,
                 getRandomInRange(currentY, wallHeight + wallPositionY), 
                 getRandomInRange(-wallDepth, wallDepth)
             ],
@@ -1128,6 +1140,7 @@ const velocityY = 0.06;
 const velocityZ = 0;
 const vBreak = 0.25;
 const vBounce = 0.15;
+const vUp = 0.001;
 // Physics factors
 const gravity = -0.002;  // Gravity in space units
 const dampingFactor = 0.6;  

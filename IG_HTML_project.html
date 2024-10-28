@@ -21,24 +21,20 @@
         }
         button, div {
             padding: 10px;
-            background-color: #007bff;
-            color: white;
+            color: black;
             border: none;
             cursor: pointer;
             font-size: 16px;
             border-radius: 5px;
             margin-right: 10px;
         }
-        button:hover {
-            background-color: #0056b3;
-        }
     </style>
 </head>
 <body>
     <canvas id="webgl-canvas"></canvas>
     <div id="controls">
-        <button id="reset-button">Restart Animation</button>
         <button id="reload-button">New Animation</button>
+        <button id="restart-button">Restart Animation</button>
         <!-- Velocity Display -->
         <div>
             <label>Velocity X: <span id="velocityX">0.00</span></label>
@@ -50,7 +46,6 @@
             <label>Velocity Z: <span id="velocityZ">0.00</span></label>
         </div>
     </div>
-
     <script src="gl-matrix.js"></script>
     <script src="IG_project.js"></script>
     <script>
