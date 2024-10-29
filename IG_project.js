@@ -658,7 +658,7 @@ function handleWallCollision() {
             console.log("Collision detected! Breaking wall...");
             breakWall();
         }
-        if(Math.abs(velocity[2]) >= vBreak){
+        if(Math.abs(velocity[2]) >= vBreak && ballPosition[1] < wallPositionY + wallHeight){
             console.log("Collision detected! Breaking wall...");
             breakWall();
         }
@@ -667,19 +667,21 @@ function handleWallCollision() {
             breakWall();
             velocity[0] = -velocity[0] * dampingFactor/2;
         }
-        if(Math.abs(velocity[2]) > vBounce && Math.abs(velocity[2]) < vBreak){
+        if(Math.abs(velocity[2]) > vBounce && Math.abs(velocity[2]) < vBreak && ballPosition[1] < wallPositionY + wallHeight){
             console.log("Collision detected! Breaking wall...");
             breakWall();
             velocity[2] = -velocity[2] * dampingFactor/2;
         }
     }
-    if(ballPosition[1] <= wallPositionY + wallHeight + r && 
+    if(ballPosition[1] <= wallPositionY + wallHeight + r + 0.1 && 
         ballPosition[0] > wallPositionX - wallWidth/2 - r &&
         ballPosition[0] < wallPositionX + wallWidth/2 + r && 
+        ballPosition[2] + r >= wallPositionZ - wallDepth &&
+        ballPosition[2] - r <= wallPositionZ + wallDepth &&
         !wallBroken &&
         velocity[0] < vUp){
         velocity[1] = -velocity[1] * dampingFactor;
-        ballPosition[1] = wallPositionY + wallHeight + r;
+        ballPosition[1] = wallPositionY + wallHeight + r + 0.1;
     }      
 }
 
