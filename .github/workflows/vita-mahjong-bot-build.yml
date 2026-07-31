@@ -25,7 +25,7 @@ jobs:
       - name: Restore project
         run: |
           mkdir -p vita-mahjong-bot
-          base64 --decode --ignore-garbage .vita-build/project.zip.b64 > /tmp/project.zip
+          base64 --decode --ignore-garbage .vita-build/project.zip.b64 > /tmp/project.zip || true
           unzip -t /tmp/project.zip
           unzip -q /tmp/project.zip -d vita-mahjong-bot
       - name: Install Android SDK packages
