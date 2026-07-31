@@ -25,14 +25,16 @@ jobs:
       - name: Restore project
         run: |
           mkdir -p vita-mahjong-bot
-          base64 -d .vita-build/project.zip.b64 > /tmp/project.zip
+          base64 --decode --ignore-garbage .vita-build/project.zip.b64 > /tmp/project.zip
+          unzip -t /tmp/project.zip
           unzip -q /tmp/project.zip -d vita-mahjong-bot
+      - name: Install Android SDK packages
+        run: yes | sdkmanager "platforms;android-35" "build-tools;35.0.0" >/dev/null
       - name: Build debug APK
         working-directory: vita-mahjong-bot
         run: gradle --no-daemon assembleDebug
       - name: Collect APK
-        run: |
-          cp vita-mahjong-bot/app/build/outputs/apk/debug/app-debug.apk VitaMahjongBot-v0.2-debug.apk
+        run: cp vita-mahjong-bot/app/build/outputs/apk/debug/app-debug.apk VitaMahjongBot-v0.2-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: VitaMahjongBot-v0.2-debug
