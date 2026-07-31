@@ -22,10 +22,12 @@ jobs:
         with:
           gradle-version: '8.11.1'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - name: Restore project
         run: |
           mkdir -p vita-mahjong-bot
-          base64 --decode --ignore-garbage .vita-build/project.zip.b64 > /tmp/project.zip || true
+          cat .vita-build/v03.part* | base64 --decode > /tmp/project.zip
           unzip -t /tmp/project.zip
           unzip -q /tmp/project.zip -d vita-mahjong-bot
       - name: Install Android SDK packages
@@ -34,9 +36,9 @@ jobs:
         working-directory: vita-mahjong-bot
         run: gradle --no-daemon assembleDebug
       - name: Collect APK
-        run: cp vita-mahjong-bot/app/build/outputs/apk/debug/app-debug.apk VitaMahjongBot-v0.2-debug.apk
+        run: cp vita-mahjong-bot/app/build/outputs/apk/debug/app-debug.apk VitaMahjongBot-v0.3-debug.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: VitaMahjongBot-v0.2-debug
-          path: VitaMahjongBot-v0.2-debug.apk
+          name: VitaMahjongBot-v0.3-debug
+          path: VitaMahjongBot-v0.3-debug.apk
           if-no-files-found: error
