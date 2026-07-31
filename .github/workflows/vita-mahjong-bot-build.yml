@@ -4,6 +4,8 @@ on:
   push:
     branches: ["vita-mahjong-bot-build"]
   workflow_dispatch:
+  pull_request:
+    branches: ["main"]
 
 jobs:
   build:
